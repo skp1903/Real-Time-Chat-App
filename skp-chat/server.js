@@ -1,70 +1,55 @@
 const express = require('express');
+const http = require('http');
+const socketIo = require('socket.io');
 const mongoose = require('mongoose');
-const bodyParser = require('body-parser');
-const cors = require('cors');
 
-const app = express();
-
-// Middleware
-app.use(cors());
-app.use(bodyParser.json());
-
-// MongoDB URI
-const dbURI = 'mongodb://localhost:27017/skp_chat';
-
-// Connect to MongoDB
-mongoose
-  .connect(dbURI)
-  .then(() => console.log('MongoDB connected successfully!'))
-  .catch((err) => console.error('Error connecting to MongoDB:', err));
-
-// Define Message Schema
+// Define the Message schema
 const messageSchema = new mongoose.Schema({
-  username: { type: String, required: true },
-  message: { type: String, required: true },
+  user: String,
+  message: String,
+  timestamp: { type: Date, default: Date.now }
 });
 
-// Message Model
+// Create the Message model
 const Message = mongoose.model('Message', messageSchema);
 
-// API Endpoints
-// Test Route
-app.get('/', (req, res) => {
-  res.send('Welcome to SKP Chat!');
+const app = express();
+const server = http.createServer(app);
+const io = socketIo(server);
+
+// Connect to MongoDB
+mongoose.connect('mongodb://127.0.0.1:27017/chatApp', {
+  useNewUrlParser: true,
+  useUnifiedTopology: true,
 });
 
-// Fetch Messages
-app.get('/api/messages', async (req, res) => {
-  try {
-    const messages = await Message.find();
-    res.json(messages);
-  } catch (err) {
-    console.error('Error fetching messages:', err);
-    res.status(500).json({ error: 'Error fetching messages' });
-  }
+// Serve static files (index.html, css, etc.)
+app.use(express.static('public'));
+
+// Handle Socket.IO connections
+io.on('connection', (socket) => {
+  console.log('New user connected');
+
+  // Listen for messages from clients
+  socket.on('chatMessage', async (messageData) => {
+    // Save the message to MongoDB
+    const newMessage = new Message({
+      user: messageData.user,
+      message: messageData.message,
+    });
+
+    await newMessage.save();  // Save the message to MongoDB
+
+    // Emit the message to all connected clients
+    io.emit('chatMessage', newMessage);
+  });
+
+  socket.on('disconnect', () => {
+    console.log('User disconnected');
+  });
 });
 
-// Save a New Message
-app.post('/api/messages', async (req, res) => {
-  console.log('Request Body:', req.body); // Debugging log
-  const { username, message } = req.body;
-
-  if (!username || !message) {
-    return res.status(400).json({ error: 'Username and message are required' });
-  }
-
-  try {
-    const newMessage = new Message({ username, message });
-    const savedMessage = await newMessage.save();
-    res.status(201).json(savedMessage);
-  } catch (err) {
-    console.error('Error saving message:', err);
-    res.status(500).json({ error: 'Error saving message' });
-  }
-});
-
-// Start Server
-const PORT = 3000;
-app.listen(PORT, () => {
-  console.log(`Server is running on port ${PORT}`);
+// Start the server
+server.listen(3000, () => {
+  console.log('Server is running on http://localhost:3000');
 });
