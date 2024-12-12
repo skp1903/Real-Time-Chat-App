@@ -3,66 +3,53 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>SKP Chat</title>
-  <link rel="stylesheet" href="https://cdn.bootcdn.net/ajax/libs/twitter-bootstrap/4.5.2/css/bootstrap.min.css">
-  <script src="https://cdn.jsdelivr.net/npm/node-forge@1.0.0/dist/forge.min.js"></script>
-  <link id="dynamic-stylesheet" rel="stylesheet" href="style_home-container.css">
+  <title>Chat App</title>
+  <script src="/socket.io/socket.io.js"></script>
+  <style>
+    /* Basic styling */
+    #messages {
+      list-style-type: none;
+      padding: 0;
+    }
+    #messages li {
+      padding: 8px;
+      background-color: #f4f4f4;
+      margin-bottom: 5px;
+      border-radius: 5px;
+    }
+  </style>
 </head>
 <body>
-  <div class="container">
-    <h1>Welcome to SKP Chat!</h1>
-
-    <!-- Project description -->
-    <p>This project is a real-time chat application with end-to-end encryption using RSA and AES. The chat messages are securely encrypted and stored in MongoDB. The platform provides forward and backward secrecy, real-time messaging, and image/file sharing.</p>
-
-    <h2>Chat with End-to-End Encryption</h2>
-    <p>Join a secure chat channel and start sending messages. All messages are encrypted using advanced encryption techniques to ensure privacy and security.</p>
-
-    <!-- Chat form with username and message input -->
-    <form id="chatForm">
-      <input type="text" id="username" placeholder="Your Name" required class="form-control mb-2">
-      <textarea id="message" placeholder="Your Message" required class="form-control mb-2"></textarea>
-      <button type="submit" class="btn btn-primary">Send</button>
-    </form>
-
-    <hr>
-
-    <div id="chatMessages"></div>
-  </div>
+  <h1>Chat Application</h1>
+  <ul id="messages"></ul>
+  <form id="messageForm">
+    <input type="text" id="user" placeholder="Your name" required>
+    <input type="text" id="message" placeholder="Type a message..." required>
+    <button type="submit">Send</button>
+  </form>
 
   <script>
-    // Function to handle the form submission and send data to MongoDB
-    async function sendMessage(event) {
-      event.preventDefault();
+    const socket = io();  // Connect to the server
 
-      const username = document.querySelector('#chatForm #username').value;
-      const message = document.querySelector('#chatForm #message').value;
+    // Listen for incoming chat messages from the server
+    socket.on('chatMessage', (messageData) => {
+      const li = document.createElement('li');
+      li.textContent = `${messageData.user}: ${messageData.message}`;
+      document.getElementById('messages').appendChild(li);
+    });
 
-      const data = { username, message };
+    // Send a chat message to the server
+    document.getElementById('messageForm').addEventListener('submit', function(e) {
+      e.preventDefault();
+      const user = document.getElementById('user').value;
+      const message = document.getElementById('message').value;
 
-      try {
-        const response = await fetch('http://localhost:3000/api/messages', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify(data),
-        });
+      // Emit the message to the server
+      socket.emit('chatMessage', { user, message });
 
-        const result = await response.json();
-        if (response.ok) {
-          console.log('Message saved:', result);
-          document.getElementById('chatMessages').innerHTML = `Message Sent: ${result.message}`;
-        } else {
-          console.error('Error:', result);
-        }
-      } catch (error) {
-        console.error('Error:', error);
-      }
-    }
-
-    // Attach event listener to the form
-    document.getElementById('chatForm').addEventListener('submit', sendMessage);
+      // Clear the input fields
+      document.getElementById('message').value = '';
+    });
   </script>
 </body>
 </html>
