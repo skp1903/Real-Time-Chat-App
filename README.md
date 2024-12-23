@@ -16,7 +16,7 @@ Clone this repository or create a new project folder:
 
 git clone https://github.com/your-username/real-time-chat-app.git
 cd real-time-chat-app
-
+ps: cd should be in skp-chat only then server.js will work
 2. Install Dependencies
 
 Run the following command to install the required dependencies:
@@ -48,7 +48,15 @@ MongoDB Setup
 
 mongod
 
-    Verify MongoDB Connection:
+
+
+    Verify MongoDB Connectio
+
+https://github.com/user-attachments/assets/4bf56ef6-6039-4a05-855d-20ddd52058bc
+
+n:
+
+
 
     Open MongoDB Compass and ensure that your chatApp database is available, and messages are being saved in the messages collection.
 
